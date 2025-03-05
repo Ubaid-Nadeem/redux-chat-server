@@ -4,11 +4,10 @@ import http from "http";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
-import User from "./schema/user.js ";
-import Message from "./schema/message.js ";
-
+import User from "./schema/user.js";
+import Message from "./schema/message.js";
 import "dotenv/config";
-import mailVerification from "./nodemailer/index.js";
+
 // Set up environment variables
 const PORT = process.env.PORT || 4000;
 const MONOGO_DB_KEY = process.env.MONGODB_URI;
@@ -42,9 +41,10 @@ io.on("connection", (socket) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("hello world");
-  console.log("server is running");
+  res.send("hello vercel");
+  console.log("Hello vercel");
 });
+
 app.post("/fetchuser", async (req, res) => {
   const { token } = req.body;
 
@@ -115,7 +115,7 @@ app.post("/sendmessage", async (req, res) => {
 
 app.post("/getmessages", async (req, res) => {
   const { sender, reciver } = req.body;
-  console.log(sender, reciver);
+  
   try {
     const messages = await Message.find({
       $or: [
