@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 4000;
 const MONOGO_DB_KEY = process.env.MONGODB_URI;
 
 const app = express();
-app.use(cors());
+app.use(cors("*"));
 app.use(express.json());
 app.use("/auth", authRoutes);
 
