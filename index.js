@@ -23,9 +23,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://react-chatapp-psi.vercel.app",
+    origin: "*",
     methods: ["GET", "POST"],
   },
+  allowEIO3: true,
+  path: "/socket",
+  transports: ["websocket", "polling"],
+  wssEngine: ["websocket", "polling"],
 });
 
 // Connect to MongoDB database
@@ -39,7 +43,6 @@ await mongoose
   });
 
 io.on("connection", (socket) => {
-  
   socket.on("join", ({ uid }) => {
     userIds[uid] = socket.id;
     io.to(socket.id).emit("connected", uid);
@@ -47,7 +50,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send_message", ({ sender, reciver, message }) => {
-   console.log( sender, reciver, message)
+    console.log(sender, reciver, message);
     io.to(userIds[reciver]).emit("new_message", {
       sender,
       reciver,
