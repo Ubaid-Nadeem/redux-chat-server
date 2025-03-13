@@ -11,6 +11,7 @@ import "dotenv/config";
 // Set up environment variables
 const PORT = process.env.PORT || 4000;
 const MONOGO_DB_KEY = process.env.MONGODB_URI;
+const userIds = {};
 
 const app = express();
 app.use(cors("*"));
@@ -19,6 +20,7 @@ app.use("/auth", authRoutes);
 
 // Initialize socket.io and set up event listeners
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -37,7 +39,21 @@ await mongoose
   });
 
 io.on("connection", (socket) => {
-  console.log("New client connected", socket.id);
+  
+  socket.on("join", ({ uid }) => {
+    userIds[uid] = socket.id;
+    io.to(socket.id).emit("connected", uid);
+    console.log(userIds);
+  });
+
+  socket.on("send_message", ({ sender, reciver, message }) => {
+   console.log( sender, reciver, message)
+    io.to(userIds[reciver]).emit("new_message", {
+      sender,
+      reciver,
+      message,
+    });
+  });
 });
 
 app.get("/", (req, res) => {
@@ -59,6 +75,7 @@ app.post("/fetchuser", async (req, res) => {
       isLogin: true,
       uid: user._id,
       friends: [],
+      socketConnected: false,
     };
 
     if (user.friends.length) {
@@ -115,7 +132,7 @@ app.post("/sendmessage", async (req, res) => {
 
 app.post("/getmessages", async (req, res) => {
   const { sender, reciver } = req.body;
-  
+
   try {
     const messages = await Message.find({
       $or: [
