@@ -49,12 +49,14 @@ io.on("connection", (socket) => {
     console.log(userIds);
   });
 
-  socket.on("send_message", ({ sender, reciver, message }) => {
-    console.log(sender, reciver, message);
+  socket.on("send_message", ({ sender, reciver, message, name , email}) => {
+
     io.to(userIds[reciver]).emit("new_message", {
       sender,
       reciver,
       message,
+      name, 
+      email
     });
   });
 });
