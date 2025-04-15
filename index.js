@@ -29,7 +29,6 @@ const io = new Server(server, {
   allowEIO3: true,
   path: "/socket",
   transports: ["websocket", "polling"],
-
 });
 
 // Connect to MongoDB database
@@ -46,20 +45,47 @@ io.on("connection", (socket) => {
   socket.on("join", ({ uid }) => {
     userIds[uid] = socket.id;
     io.to(socket.id).emit("connected", uid);
-    console.log(userIds);
   });
 
-  socket.on("send_message", ({ sender, reciver, message, name , email}) => {
+  socket.on(
+    "send_message",
+    ({ sender, reciver, message, name, unique, sent }) => {
+      addNewMessage(reciver, sender, message, name, unique, io);
+    }
+  );
+});
 
-    io.to(userIds[reciver]).emit("new_message", {
+async function addNewMessage(
+  reciver,
+  sender,
+  message,
+  name,
+  unique,
+  io
+) {
+  try {
+    let msg = new Message({
+      reciver: reciver,
+      sender: sender,
+      message: message,
+      messageType: "text",
+      unique
+    });
+
+    await msg.save();
+
+    io.to([userIds[reciver],userIds[sender]]).emit("new_message", {
       sender,
       reciver,
       message,
-      name, 
-      email
+      name,
+      unique,
+      sent : true
     });
-  });
-});
+  } catch (e) {
+    res.send({ error: true, data: null, msg: "Failed to send message" });
+  }
+}
 
 app.get("/", (req, res) => {
   res.send("hello vercel");
@@ -118,22 +144,23 @@ app.post("/fetchuser", async (req, res) => {
   }
 });
 
-app.post("/sendmessage", async (req, res) => {
-  try {
-    let msg = new Message({
-      reciver: "67c19df356d318c936407a78",
-      sender: "67c64e7499d91112222bcd1e",
-      message: "API Checking 3",
-      messageType: "text",
-    });
+// app.post("/sendmessage", async (req, res) => {
+//   try {
+//     let msg = new Message({
+//       reciver: "67c19df356d318c936407a78",
+//       sender: "67c64e7499d91112222bcd1e",
+//       message: "API Checking 3",
+//       messageType: "text",
+//       // unique
+//     });
 
-    await msg.save();
+//     await msg.save();
 
-    res.send({ error: false, data: msg, msg: "Message sent successfully" });
-  } catch (e) {
-    res.send({ error: true, data: null, msg: "Failed to send message" });
-  }
-});
+//     res.send({ error: false, data: msg, msg: "Message sent successfully" });
+//   } catch (e) {
+//     res.send({ error: true, data: null, msg: "Failed to send message" });
+//   }
+// });
 
 app.post("/getmessages", async (req, res) => {
   const { sender, reciver } = req.body;
@@ -153,6 +180,30 @@ app.post("/getmessages", async (req, res) => {
     });
   } catch (e) {
     res.send({ error: true, data: null, msg: "Failed to fetch messages" });
+  }
+});
+
+app.post("/searchuser", async (req, res) => {
+  const { search } = req.body;
+  try {
+    let users = await User.find({
+      $or: [{ email: { $regex: search, $options: "i" } }],
+    });
+    res.send({ error: false, data: users, msg: "Search Successfully" });
+  } catch (e) {
+    console.log(e);
+    res.send({ error: true, data: null, msg: "Server error" });
+  }
+});
+
+app.post("/deleteMsg", async (req, res) => {
+  let { unique } = req.body;
+  
+  try {
+    let message = await Message.findOneAndDelete({ unique: unique });
+    res.send("Delete");
+  } catch (e) {
+    console.log(e);
   }
 });
 
